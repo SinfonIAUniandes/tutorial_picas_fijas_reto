@@ -33,13 +33,7 @@ def main():
     # Generar numero secreto
     secreto = generar_numero_secreto()
     rospy.loginfo(f"Secreto para {team_name}: {secreto}")
-    
-    # Publicadores
-    reg_pub = rospy.Publisher('/topico_registro', String, queue_size=10)
     global_pub = rospy.Publisher('/topico_global', String, queue_size=10)
-    
-    # Registrarse con el nodo central
-    reg_pub.publish(String(team_name))
     
     def manejar_intento(req):
         global muerto
