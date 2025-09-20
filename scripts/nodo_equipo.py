@@ -2,8 +2,11 @@
 
 import rospy
 import random
+import os
 from std_msgs.msg import String
 from picas_fijas_msgs.srv import Intento, IntentoResponse
+
+muerto = False
 
 def generar_numero_secreto():
     digitos = list(range(10))
@@ -21,6 +24,7 @@ def calcular_picas_fijas(secreto, intento):
     return picas, fijas
 
 def main():
+    global muerto
     # Pedir nombre del equipo
     team_name = input("Ingrese nombre del equipo: ").strip().replace(" ", "_")  # Reemplazar espacios para nombre de nodo valido
     
@@ -38,6 +42,7 @@ def main():
     reg_pub.publish(String(team_name))
     
     def manejar_intento(req):
+        global muerto
         intento = req.valor
         
         if len(intento) != 4 or not intento.isdigit():
@@ -48,6 +53,7 @@ def main():
         
         if fijas == 4:
             global_pub.publish(String(f"{team_name} fue eliminado con el numero {intento}"))
+            muerto = True
             return IntentoResponse(exito=True)
         else:
             global_pub.publish(String(f"Para {team_name} el numero {intento} tiene {picas} picas y {fijas} fijas."))
@@ -56,10 +62,13 @@ def main():
     
     service = rospy.Service(f'/{team_name}/guess_service', Intento, manejar_intento)
     
-    rospy.spin()
+    while not rospy.is_shutdown() and not muerto:
+        rospy.sleep(1)
+    print("Equipo eliminado, cerrando nodo...")
+    os._exit(0)
 
 if __name__ == '__main__':
     try:
         main()
     except rospy.ROSInterruptException:
-        pass
+        os._exit(0)
