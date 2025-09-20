@@ -3,7 +3,7 @@
 import rospy
 import random
 from std_msgs.msg import String
-from std_srvs.srv import Empty, EmptyResponse
+from picas_fijas_msgs.srv import Intento, IntentoResponse
 
 def generar_numero_secreto():
     digitos = list(range(10))
@@ -38,25 +38,23 @@ def main():
     reg_pub.publish(String(team_name))
     
     def manejar_intento(req):
-        # El servicio espera que el intento se establezca como parametro (por simplicidad, usamos Empty)
-        # En una implementacion real, se usaria un servicio personalizado con String
-        intento = rospy.get_param('/guess_number', '')  # Se asume set via "rosparam set /guess_number "1234""
-        equipo_intentador = rospy.get_param('/guesser_team', 'Desconocido')
+        intento = req.valor
         
         if len(intento) != 4 or not intento.isdigit():
             global_pub.publish(String(f"Intento invalido para {team_name}"))
-            return EmptyResponse()
+            return IntentoResponse(exito=False)
         
         picas, fijas = calcular_picas_fijas(secreto, intento)
         
         if fijas == 4:
-            global_pub.publish(String(f"{equipo_intentador} elimino a {team_name} con el numero {intento}"))
+            global_pub.publish(String(f"{team_name} fue eliminado con el numero {intento}"))
+            return IntentoResponse(exito=True)
         else:
             global_pub.publish(String(f"Para {team_name} el numero {intento} tiene {picas} picas y {fijas} fijas."))
         
-        return EmptyResponse()
+        return IntentoResponse(exito=False)
     
-    service = rospy.Service(f'/{team_name}/guess_service', Empty, manejar_intento)
+    service = rospy.Service(f'/{team_name}/guess_service', Intento, manejar_intento)
     
     rospy.spin()
 
