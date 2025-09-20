@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import random
@@ -22,7 +22,7 @@ def calcular_picas_fijas(secreto, intento):
 
 def main():
     # Pedir nombre del equipo
-    team_name = raw_input("Ingrese nombre del equipo: ").strip().replace(" ", "_")  # Reemplazar espacios para nombre de nodo valido
+    team_name = input("Ingrese nombre del equipo: ").strip().replace(" ", "_")  # Reemplazar espacios para nombre de nodo valido
     
     rospy.init_node(team_name)
     
