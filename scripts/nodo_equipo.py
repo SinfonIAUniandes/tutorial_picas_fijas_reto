@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+
+import rospy
+import random
+from std_msgs.msg import String
+from std_srvs.srv import Empty, EmptyResponse
+
+def generar_numero_secreto():
+    digitos = list(range(10))
+    random.shuffle(digitos)
+    return ''.join(map(str, digitos[:4]))
+
+def calcular_picas_fijas(secreto, intento):
+    picas = 0
+    fijas = 0
+    for i in range(4):
+        if intento[i] == secreto[i]:
+            fijas += 1
+        elif intento[i] in secreto:
+            picas += 1
+    return picas, fijas
+
+def main():
+    # Pedir nombre del equipo
+    team_name = raw_input("Ingrese nombre del equipo: ").strip().replace(" ", "_")  # Reemplazar espacios para nombre de nodo valido
+    
+    rospy.init_node(team_name)
+    
+    # Generar numero secreto
+    secreto = generar_numero_secreto()
+    rospy.loginfo(f"Secreto para {team_name}: {secreto}")
+    
+    # Publicadores
+    reg_pub = rospy.Publisher('/topico_registro', String, queue_size=10)
+    global_pub = rospy.Publisher('/topico_global', String, queue_size=10)
+    
+    # Registrarse con el nodo central
+    reg_pub.publish(String(team_name))
+    
+    def manejar_intento(req):
+        # El servicio espera que el intento se establezca como parametro (por simplicidad, usamos Empty)
+        # En una implementacion real, se usaria un servicio personalizado con String
+        intento = rospy.get_param('/guess_number', '')  # Se asume set via "rosparam set /guess_number "1234""
+        equipo_intentador = rospy.get_param('/guesser_team', 'Desconocido')
+        
+        if len(intento) != 4 or not intento.isdigit():
+            global_pub.publish(String(f"Intento invalido para {team_name}"))
+            return EmptyResponse()
+        
+        picas, fijas = calcular_picas_fijas(secreto, intento)
+        
+        if fijas == 4:
+            global_pub.publish(String(f"{equipo_intentador} elimino a {team_name} con el numero {intento}"))
+        else:
+            global_pub.publish(String(f"Para {team_name} el numero {intento} tiene {picas} picas y {fijas} fijas."))
+        
+        return EmptyResponse()
+    
+    service = rospy.Service(f'/{team_name}/guess_service', Empty, manejar_intento)
+    
+    rospy.spin()
+
+if __name__ == '__main__':
+    try:
+        main()
+    except rospy.ROSInterruptException:
+        pass
